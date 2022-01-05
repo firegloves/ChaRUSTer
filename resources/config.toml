@@ -1,0 +1,28 @@
+[execution_conf]
+    char_nums = 5
+
+[char_conf]
+    gen_name = true
+    gen_surname = true
+    gen_nickname = true
+    gen_description = false
+    gen_image = true
+    gen_collection = true
+    gen_profession = true
+    gen_hobbies = true
+    gen_props = true
+    gen_levels = true
+    gen_stats = true
+
+[values_conf]
+    collection_name = "Junkie Zombies"
+    names_file = "resources/names"
+    surnames_file = "resources/surnames"
+    nicknames_file = "resources/adjectives"
+    hobbies_file = "resources/hobbies"
+    professions_file = "resources/professions"
+    props_file = "resources/properties"
+    stats_file = "resources/properties"
+    levels_file = "resources/properties"
+    images_folder = "/Users/firegloves/workspace/NFTGonarator/output"
+    description_files = "resources/descriptions"

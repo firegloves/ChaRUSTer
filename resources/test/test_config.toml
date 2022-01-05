@@ -1,0 +1,28 @@
+[execution_conf]
+    char_nums = 3
+
+[char_conf]
+    gen_name = true
+    gen_surname = true
+    gen_nickname = true
+    gen_description = true
+    gen_image = true
+    gen_collection = true
+    gen_profession = true
+    gen_hobbies = true
+    gen_props = true
+    gen_levels = true
+    gen_stats = true
+
+[values_conf]
+    collection_name = "Junkie Zombies"
+    names_file = "./names"
+    surnames_file = "./surnames"
+    nicknames_file = "./adjectives"
+    hobbies_file = "./hobbies"
+    professions_file = "./professions"
+    props_file = "./properties"
+    stats_file = "./stats"
+    levels_file = "./levels"
+    images_folder = "./images/"
+    description_files = "./descriptions"
