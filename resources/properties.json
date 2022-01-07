@@ -1,0 +1,8 @@
+[
+    { "kind": "Putrefaction", "terms": ["Rotten", "Bad", "Spoiled", "Festering", "Putrid", "Corrupt", "Vile", "Decomposed"]},
+    { "kind": "Stink", "terms": ["Spreading", "Fetid", "Reeking", "Smelling", "Disgusting", "Gross", "Nauseating", "Revolting", "Repugnant", "Horrid", "Pestilent"]},
+    { "kind": "Hunger", "terms": ["Starved", "Famished", "Eager", "Ravenous", "Voracious", "Insatiable", "Malnourished", "Stuffed", "Replete"]},
+    { "kind": "Speed", "terms": ["Quick", "Fast", "Rapid", "Slow", "Slowpoke", "Slow coach", "Lightning quick"]},
+    { "kind": "Strength", "terms": ["Strapping", "Body builder", "Beefy", "Chunky", "Weak", "Weary", "Feeble", "Tenuous", "Exhausted", "Tired", "Powerful", "Vigorous"]},
+    { "kind": "Rage", "terms": ["Rabid", "Furious", "Enraged", "Fierce", "Irascible", "Angry", "Quick-tempered", "Calm" ,"Relaxed", "Quiet", "Take it easy", "One love"]}
+]

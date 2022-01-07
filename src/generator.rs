@@ -1,4 +1,6 @@
 use std::borrow::BorrowMut;
+use std::fs::{File, OpenOptions};
+use std::io::{BufReader, BufWriter, Write, BufRead};
 use std::marker::PhantomData;
 use rand::Rng;
 use rand::rngs::ThreadRng;
@@ -7,12 +9,32 @@ use crate::character;
 use crate::character::{CharacterBuilder, CharacterFeature, Charuster, Level, Property, Stat, Quirk};
 use crate::config::Config;
 use crate::dictionary;
-use crate::dictionary::{Dictionary, SimpleDictionary};
+use crate::dictionary::{Dictionary, SimpleDictionary, TwoLevelsDictionary};
 
 type FnCharFeatPropCreator = Box<dyn Fn(String) -> Option<character::CharacterFeature>>;
 type FnCharFeatVecPropCreator = Box<dyn Fn(Vec<String>) -> Option<character::CharacterFeature>>;
 type FnCharFeatVecQuirkCreator<T> = Box<dyn Fn(Vec<T>) -> Option<character::CharacterFeature>>;
 type FnQuirkCreator<T> = Box<dyn Fn(&dyn Dictionary) -> T>;
+
+fn export_to_json(charusters: Vec<Charuster>, filename: &str) {
+    let json = serde_json::to_string(&charusters).unwrap();
+    let d = "ciao";
+
+    let write = OpenOptions::new().write(true).create(true).open(filename);
+    let mut reader = BufReader::new(json.as_bytes());
+    let mut writer = BufWriter::new(write.unwrap());
+
+    let mut length = 1;
+
+    while length > 0 {
+        let buffer = reader.fill_buf().unwrap();
+
+        writer.write(buffer);
+
+        length = buffer.len();
+        reader.consume(length);
+    }
+}
 
 fn generate_charusters(config: &Config) -> Vec<Charuster> {
 
@@ -99,12 +121,14 @@ fn create_generators(config: &Config) -> Vec<Box<dyn FeatureGenerator>> {
         generators.push(boxxx);
     }
     if config.char_conf.gen_props && !config.values_conf.props_file.is_empty() {
-        let dict = SimpleDictionary::new(config.values_conf.props_file.as_str());
+        let dict = TwoLevelsDictionary::new(config.values_conf.props_file.as_str());
         let mut generator = ChooseVecQuirkGenerator::new(Box::new(dict), Box::new(|v: Vec<Property>| Some(CharacterFeature::PROPS(v))), 3,
                                                      Box::new(|dict: &dyn Dictionary| {
+                                                         let term = dict.choose().unwrap();
+                                                         let taxonomy : Vec<&str> = term.split("+").collect();
                                                          character::Property {
-                                                             prop_type: dict.choose().unwrap(),
-                                                             name: dict.choose().unwrap(),
+                                                             prop_type: String::from(taxonomy.get(0).unwrap().to_owned()),
+                                                             name: String::from(taxonomy.get(1).unwrap().to_owned())
                                                          }
                                                      }));
         let mut boxxx = Box::new(generator);
@@ -199,7 +223,7 @@ impl ChooseVecGenerator {
 impl FeatureGenerator for ChooseVecGenerator {
     fn generate(&mut self) -> Option<character::CharacterFeature> {
         let mut feat_vec = vec![];
-        for _ in (0..self.vec_size).next() {
+        for _ in (0..self.vec_size).into_iter() {
             let value = self.dict.choose()?;
             feat_vec.push(value.clone());
         }
@@ -225,7 +249,7 @@ impl<T> FeatureGenerator for ChooseVecQuirkGenerator<T>
 where T: character::Quirk {
     fn generate(&mut self) -> Option<character::CharacterFeature> {
         let mut feat_vec = vec![];
-        for _ in (0..self.vec_size).next() {
+        for _ in (0..self.vec_size).into_iter() {
             let quirk = (self.fn_quirk_creator)(&*self.dict);
             feat_vec.push(quirk);
         }
@@ -253,6 +277,7 @@ mod tests {
     #[test]
     fn test() {
         let config = parse_config();
-        generate_charusters(&config);
+        let charusters = generate_charusters(&config);
+        export_to_json(charusters, "/Users/firegloves/Desktop/churusters.json")
     }
 }

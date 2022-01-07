@@ -1,10 +1,11 @@
+use std::{fs, io};
 use std::borrow::BorrowMut;
 use std::fs::File;
-use std::{fs, io};
-use std::io::BufRead;
+use std::io::{BufRead, Read};
 use std::path::Path;
 
 use rand::prelude::*;
+use serde::{Deserialize, Serialize};
 
 const ACCEPTED_IMAGE_FORMATS: [&'static str; 3] = ["jpg", "jpeg", "png"];
 
@@ -13,6 +14,7 @@ pub trait Dictionary {
     fn choose(&self) -> Option<String>;
 }
 
+// SimpleDictionary
 pub struct SimpleDictionary {
     name: String,
     terms: Vec<String>,
@@ -38,7 +40,7 @@ impl SimpleDictionary {
         let paths = fs::read_dir(dir).unwrap();
 
         let terms: Vec<String> = paths
-            .map(|dirEntry| dirEntry.unwrap().path())
+            .map(|dir_entry| dir_entry.unwrap().path())
             .filter(|path| path.extension().is_some() &&
                 ACCEPTED_IMAGE_FORMATS.contains(&(path.extension().unwrap().to_str().unwrap())))
             .map(|path| path.file_name().unwrap().to_str().unwrap().to_owned())
@@ -70,7 +72,58 @@ impl Dictionary for SimpleDictionary {
     }
 }
 
-pub fn read_dictionary(filename: &str) -> Option<Vec<String>> {
+// TwoLevelsDictionary
+pub struct TwoLevelsDictionary {
+    name: String,
+    taxonomies: Vec<Taxonomy>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Taxonomy {
+    kind: String,
+    terms: Vec<String>
+}
+
+impl TwoLevelsDictionary {
+    /// create a new dictionary from file
+    pub fn new(filename: &str) -> Self {
+        let name = get_name_from_file(&filename);
+        let terms = parse_two_levels_dictionary(filename).expect(format!("Dictionary not found: {}", filename).as_str());
+        TwoLevelsDictionary { name: name.unwrap().to_owned(), taxonomies: terms }
+    }
+}
+
+impl Dictionary for TwoLevelsDictionary {
+    /// choose a term of the dictionary (term and subterm separated by a +), remove it from the vector and return it
+    fn choose_and_remove(&mut self) -> Option<String> {
+        if self.taxonomies.len() <= 0 {
+            ()
+        }
+
+        let kind_ind = (0..self.taxonomies.len()).choose(&mut thread_rng())?;
+        let mut taxonomy = self.taxonomies.swap_remove(kind_ind);
+
+        let term_ind = (0..taxonomy.terms.len()).choose(&mut thread_rng())?;
+        let term = taxonomy.terms.swap_remove(term_ind);
+
+        Some(format!("{}+{}", taxonomy.kind, term))
+    }
+
+    /// choose a term of the dictionary (term and subterm separated by a +), remove it from the vector and return it
+    fn choose(&self) -> Option<String> {
+        if self.taxonomies.len() <= 0 {
+            ()
+        }
+
+        let taxonomy = self.taxonomies.choose(&mut thread_rng())?;
+        let term = taxonomy.terms.choose(&mut thread_rng())?;
+
+        Some(format!("{}+{}", taxonomy.kind, term))
+    }
+}
+
+
+fn read_dictionary(filename: &str) -> Option<Vec<String>> {
     let lines = read_lines(filename);
     match lines {
         Ok(lines) => {
@@ -82,6 +135,14 @@ pub fn read_dictionary(filename: &str) -> Option<Vec<String>> {
             None
         },
     }
+}
+
+fn parse_two_levels_dictionary(filename: &str) -> Option<Vec<Taxonomy>> {
+    let mut file = File::open(filename).unwrap();
+    let mut json = String::new();
+    file.read_to_string(&mut json).unwrap();
+    let terms: Vec<Taxonomy> = serde_json::from_str(json.as_str()).expect("JSON was not well-formatted");
+    Some(terms)
 }
 
 // The output is wrapped in a Result to allow matching on errors
@@ -108,8 +169,12 @@ mod tests {
     const EXPECTED_TERMS: [&'static str; 3] = ["term_1", "term_2", "term_3"];
 
     fn get_test_dictionary_filename() -> String {
+        get_dictionary_filename("test_dictionary")
+    }
+
+    fn get_dictionary_filename(dict_name: &str) -> String {
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("resources/test/test_dictionary");
+        d.push("resources/test/".to_owned() + dict_name);
         d.into_os_string().into_string().unwrap()
     }
 
@@ -240,5 +305,29 @@ mod tests {
         let term2 = dict.choose().unwrap();
         assert!(EXPECTED_TERMS.contains(&term2.as_str()));
         assert_eq!(dict.terms.len(), 3);
+    }
+
+    #[test]
+    fn should_parse_two_levels_dictionary() {
+        let taxonomies = parse_two_levels_dictionary(get_dictionary_filename("test_two_levels_dictionary.json").as_str()).unwrap();
+        assert_eq!(taxonomies.len(), 3);
+
+        assert_eq!(taxonomies[0].kind, "term_1");
+        assert_eq!(taxonomies[0].terms.len(), 3);
+        assert_eq!(taxonomies[0].terms[0], "sub_term_1_1");
+        assert_eq!(taxonomies[0].terms[1], "sub_term_1_2");
+        assert_eq!(taxonomies[0].terms[2], "sub_term_1_3");
+
+        assert_eq!(taxonomies[1].kind, "term_2");
+        assert_eq!(taxonomies[1].terms.len(), 3);
+        assert_eq!(taxonomies[1].terms[0], "sub_term_2_1");
+        assert_eq!(taxonomies[1].terms[1], "sub_term_2_2");
+        assert_eq!(taxonomies[1].terms[2], "sub_term_2_3");
+
+        assert_eq!(taxonomies[2].kind, "term_3");
+        assert_eq!(taxonomies[2].terms.len(), 3);
+        assert_eq!(taxonomies[2].terms[0], "sub_term_3_1");
+        assert_eq!(taxonomies[2].terms[1], "sub_term_3_2");
+        assert_eq!(taxonomies[2].terms[2], "sub_term_3_3");
     }
 }

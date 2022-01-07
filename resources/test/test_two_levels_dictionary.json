@@ -1,0 +1,5 @@
+[
+        { "kind": "term_1", "terms": ["sub_term_1_1", "sub_term_1_2", "sub_term_1_3"]},
+        { "kind": "term_2", "terms": ["sub_term_2_1", "sub_term_2_2", "sub_term_2_3"]},
+        { "kind": "term_3", "terms": ["sub_term_3_1", "sub_term_3_2", "sub_term_3_3"]}
+]
