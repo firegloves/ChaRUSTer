@@ -54,7 +54,8 @@ fn generate_charusters(config: &Config) -> Vec<Charuster> {
                 CharacterFeature::NAME(value) => &builder.name(value),
                 CharacterFeature::SURNAME(value) => &builder.surname(value),
                 CharacterFeature::NICKNAME(value) => &builder.nickname(value),
-                CharacterFeature::BIRTHDAY(value) => &builder.birthday(value),
+                CharacterFeature::BIRTHDATE(value) => &builder.birthdate(value),
+                CharacterFeature::BIRTHPLACE(value) => &builder.birthplace(value),
                 CharacterFeature::DESCRIPTION(value) => &builder.description(value),
                 CharacterFeature::IMAGE(value) => &builder.image(value),
                 CharacterFeature::COLLECTION(value) => &builder.collection(value),
@@ -93,12 +94,18 @@ fn create_generators(config: &Config) -> Vec<Box<dyn FeatureGenerator>> {
         let mut boxxx = Box::new(generator);
         generators.push(boxxx);
     }
-    if config.char_conf.gen_birthday {
-        let min_year = config.values_conf.birthday_min_year;
-        let max_year = config.values_conf.birthday_max_year;
+    if config.char_conf.gen_birthdate {
+        let min_year = config.values_conf.birthdate_min_year;
+        let max_year = config.values_conf.birthdate_max_year;
         println!("MIN YEAR: {} - MAX YEAR {}", min_year, max_year);
         let mut generator = DateGenerator::new(min_year, max_year,
-                                               Box::new(|v: String| Some(CharacterFeature::BIRTHDAY(v.clone()))));
+                                               Box::new(|v: String| Some(CharacterFeature::BIRTHDATE(v.clone()))));
+        let mut boxxx = Box::new(generator);
+        generators.push(boxxx);
+    }
+    if config.char_conf.gen_birthdate {
+        let dict = SimpleDictionary::new(config.values_conf.birthplaces_file.as_str());
+        let mut generator = ChooseAndRemoveGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::BIRTHPLACE(v.clone()))));
         let mut boxxx = Box::new(generator);
         generators.push(boxxx);
     }
@@ -195,20 +202,20 @@ trait FeatureGenerator {
 
 // DateGenerator
 struct DateGenerator {
-    birthday_min_year: u16,
-    birthday_max_year: u16,
+    birthdate_min_year: u16,
+    birthdate_max_year: u16,
     fn_char_feat_creator: FnCharFeatPropCreator,
 }
 
 impl DateGenerator {
-    fn new(birthday_min_year: u16, birthday_max_year: u16, fn_char_feat_creator: FnCharFeatPropCreator) -> Self {
-        DateGenerator { birthday_min_year, birthday_max_year, fn_char_feat_creator }
+    fn new(birthdate_min_year: u16, birthdate_max_year: u16, fn_char_feat_creator: FnCharFeatPropCreator) -> Self {
+        DateGenerator { birthdate_min_year, birthdate_max_year, fn_char_feat_creator }
     }
 }
 
 impl FeatureGenerator for DateGenerator {
     fn generate(&mut self) -> Option<character::CharacterFeature> {
-        let rnd_date = get_random_date(self.birthday_min_year, self.birthday_max_year);
+        let rnd_date = get_random_date(self.birthdate_min_year, self.birthdate_max_year);
         (self.fn_char_feat_creator)(rnd_date.timestamp().to_string())
     }
 }
@@ -325,7 +332,7 @@ mod tests {
     fn generate_churusters() {
         let config = parse_config();
         let charusters = generate_charusters(&config);
-        export_to_json(charusters, "/Users/firegloves/Desktop/churusters.json")
+        //export_to_json(charusters, "/Users/firegloves/Desktop/churusters.json")
     }
 
     #[test]

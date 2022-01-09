@@ -5,7 +5,8 @@
     gen_name = true
     gen_surname = true
     gen_nickname = true
-    gen_birthday = true
+    gen_birthdate = true
+    gen_birthplace = true
     gen_description = false
     gen_image = true
     gen_collection = true
@@ -20,6 +21,7 @@
     names_file = "resources/names"
     surnames_file = "resources/surnames"
     nicknames_file = "resources/adjectives"
+    birthplaces_file = "resources/country_cities"
     hobbies_file = "resources/hobbies"
     professions_file = "resources/professions"
     props_file = "resources/properties.json"
@@ -27,5 +29,5 @@
     levels_file = "resources/levels_stats"
     images_folder = "/Users/firegloves/workspace/NFTGonarator/output"
     description_files = "resources/descriptions"
-    birthday_min_year = 1920
-    birthday_max_year = 2010
+    birthdate_min_year = 1920
+    birthdate_max_year = 2010

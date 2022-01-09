@@ -13,7 +13,8 @@ pub enum CharacterFeature {
     NAME(String),
     SURNAME(String),
     NICKNAME(String),
-    BIRTHDAY(String),
+    BIRTHDATE(String),
+    BIRTHPLACE(String),
     DESCRIPTION(String),
     IMAGE(String),
     COLLECTION(String),
@@ -29,7 +30,8 @@ pub struct Charuster {
     name: String,
     surname: String,
     nickname: String,
-    birthday: String,
+    birthdate: String,
+    birthplace: String,
     description: String,
     hobbies: Vec<String>,
     image: String,
@@ -56,8 +58,11 @@ impl Charuster {
     pub fn nickname(&self) -> &String {
         &self.nickname
     }
-    pub fn birthday(&self) -> &String {
-        &self.birthday
+    pub fn birthdate(&self) -> &String {
+        &self.birthdate
+    }
+    pub fn birthplace(&self) -> &String {
+        &self.birthplace
     }
     pub fn description(&self) -> &String {
         &self.description
@@ -90,7 +95,8 @@ pub struct CharacterBuilder {
     name: String,
     surname: String,
     nickname: String,
-    birthday: String,
+    birthdate: String,
+    birthplace: String,
     description: String,
     hobbies: Vec<String>,
     image: String,
@@ -107,7 +113,8 @@ impl CharacterBuilder {
             name: "".to_string(),
             surname: "".to_string(),
             nickname: "".to_string(),
-            birthday: "".to_string(),
+            birthdate: "".to_string(),
+            birthplace: "".to_string(),
             description: "".to_string(),
             hobbies: vec![],
             image: "".to_string(),
@@ -134,8 +141,13 @@ impl CharacterBuilder {
         self
     }
 
-    pub fn birthday(& mut self, birthday: String) -> &Self {
-        self.birthday = birthday;
+    pub fn birthdate(& mut self, birthdate: String) -> &Self {
+        self.birthdate = birthdate;
+        self
+    }
+
+    pub fn birthplace(& mut self, birthplace: String) -> &Self {
+        self.birthplace = birthplace;
         self
     }
 
@@ -186,7 +198,8 @@ impl CharacterBuilder {
             name: self.name,
             surname: self.surname,
             nickname: self.nickname,
-            birthday: self.birthday.to_string(),
+            birthdate: self.birthdate,
+            birthplace: self.birthplace,
             description: self.description,
             hobbies: self.hobbies,
             image: self.image,
