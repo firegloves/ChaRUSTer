@@ -2,8 +2,12 @@ use std::borrow::BorrowMut;
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, Write, BufRead};
 use std::marker::PhantomData;
+use std::ops::Add;
+use chrono::{Date, Datelike, DateTime, Duration, NaiveTime, TimeZone, Utc};
+use rand::distributions::Uniform;
 use rand::Rng;
 use rand::rngs::ThreadRng;
+use toml::value::Datetime;
 
 use crate::character;
 use crate::character::{CharacterBuilder, CharacterFeature, Charuster, Level, Property, Stat, Quirk};
@@ -18,7 +22,6 @@ type FnQuirkCreator<T> = Box<dyn Fn(&mut dyn Dictionary) -> T>;
 
 fn export_to_json(charusters: Vec<Charuster>, filename: &str) {
     let json = serde_json::to_string(&charusters).unwrap();
-    let d = "ciao";
 
     let write = OpenOptions::new().write(true).create(true).open(filename);
     let mut reader = BufReader::new(json.as_bytes());
@@ -51,6 +54,7 @@ fn generate_charusters(config: &Config) -> Vec<Charuster> {
                 CharacterFeature::NAME(value) => &builder.name(value),
                 CharacterFeature::SURNAME(value) => &builder.surname(value),
                 CharacterFeature::NICKNAME(value) => &builder.nickname(value),
+                CharacterFeature::BIRTHDAY(value) => &builder.birthday(value),
                 CharacterFeature::DESCRIPTION(value) => &builder.description(value),
                 CharacterFeature::IMAGE(value) => &builder.image(value),
                 CharacterFeature::COLLECTION(value) => &builder.collection(value),
@@ -86,6 +90,15 @@ fn create_generators(config: &Config) -> Vec<Box<dyn FeatureGenerator>> {
     if config.char_conf.gen_nickname && !config.values_conf.nicknames_file.is_empty() {
         let dict = SimpleDictionary::new(config.values_conf.nicknames_file.as_str());
         let mut generator = ChooseAndRemoveGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::NICKNAME(v.clone()))));
+        let mut boxxx = Box::new(generator);
+        generators.push(boxxx);
+    }
+    if config.char_conf.gen_birthday {
+        let min_year = config.values_conf.birthday_min_year;
+        let max_year = config.values_conf.birthday_max_year;
+        println!("MIN YEAR: {} - MAX YEAR {}", min_year, max_year);
+        let mut generator = DateGenerator::new(min_year, max_year,
+                                               Box::new(|v: String| Some(CharacterFeature::BIRTHDAY(v.clone()))));
         let mut boxxx = Box::new(generator);
         generators.push(boxxx);
     }
@@ -164,9 +177,40 @@ fn create_generators(config: &Config) -> Vec<Box<dyn FeatureGenerator>> {
     generators
 }
 
+fn get_random_date(min_year: u16, max_year: u16) -> DateTime<Utc>{
+    let min_date = Utc.ymd(min_year as i32, 1, 1);
+    let max_date = Utc.ymd(max_year as i32, 1, 1);
+
+    let days_span = max_date.num_days_from_ce() - min_date.num_days_from_ce();
+    let days_to_add = rand::thread_rng().gen_range(0..=days_span);
+    let rnd_date = min_date.checked_add_signed(Duration::days(days_to_add as i64)).unwrap();
+    //println!("{}", rnd_date.year());
+    rnd_date.and_time(NaiveTime::from_hms(0, 0, 0)).unwrap()
+}
+
 /** GENERATORS **/
 trait FeatureGenerator {
     fn generate(&mut self) -> Option<character::CharacterFeature>;
+}
+
+// DateGenerator
+struct DateGenerator {
+    birthday_min_year: u16,
+    birthday_max_year: u16,
+    fn_char_feat_creator: FnCharFeatPropCreator,
+}
+
+impl DateGenerator {
+    fn new(birthday_min_year: u16, birthday_max_year: u16, fn_char_feat_creator: FnCharFeatPropCreator) -> Self {
+        DateGenerator { birthday_min_year, birthday_max_year, fn_char_feat_creator }
+    }
+}
+
+impl FeatureGenerator for DateGenerator {
+    fn generate(&mut self) -> Option<character::CharacterFeature> {
+        let rnd_date = get_random_date(self.birthday_min_year, self.birthday_max_year);
+        (self.fn_char_feat_creator)(rnd_date.timestamp().to_string())
+    }
 }
 
 // ChooseGenerator
@@ -261,7 +305,9 @@ where T: character::Quirk {
 
 #[cfg(test)]
 mod tests {
+    use std::cmp::min;
     use std::path::PathBuf;
+    use chrono::NaiveDateTime;
 
     use crate::character::CharacterFeature::NAME;
     use crate::character::CharacterPropTypes;
@@ -276,9 +322,19 @@ mod tests {
     }
 
     #[test]
-    fn test() {
+    fn generate_churusters() {
         let config = parse_config();
         let charusters = generate_charusters(&config);
         export_to_json(charusters, "/Users/firegloves/Desktop/churusters.json")
+    }
+
+    #[test]
+    fn should_return_random_date_in_the_expected_interval() {
+        let min_year = 1900;
+        let max_year = 1950;
+        for i in (0..1000).into_iter() {
+            let gen_time = get_random_date(min_year, max_year);
+            assert!(gen_time.year() >= min_year as i32 && gen_time.year() <= max_year as i32);
+        }
     }
 }

@@ -5,6 +5,7 @@
     gen_name = true
     gen_surname = true
     gen_nickname = true
+    gen_birthday = true
     gen_description = false
     gen_image = true
     gen_collection = true
@@ -26,3 +27,5 @@
     levels_file = "resources/levels_stats"
     images_folder = "/Users/firegloves/workspace/NFTGonarator/output"
     description_files = "resources/descriptions"
+    birthday_min_year = 1920
+    birthday_max_year = 2010

@@ -25,6 +25,7 @@ pub struct CharacterConfig {
     pub gen_name: bool,
     pub gen_surname: bool,
     pub gen_nickname: bool,
+    pub gen_birthday: bool,
     pub gen_description: bool,
     pub gen_image: bool,
     pub gen_collection: bool,
@@ -48,6 +49,8 @@ pub struct ValuesConfig {
     pub levels_file: String,
     pub images_folder: String,
     pub description_files: String,
+    pub birthday_min_year: u16,
+    pub birthday_max_year: u16,
 }
 
 pub fn parse_config() -> Config {
@@ -72,6 +75,7 @@ mod tests {
         assert!(config.char_conf.gen_name);
         assert!(config.char_conf.gen_surname);
         assert!(config.char_conf.gen_nickname);
+        assert!(config.char_conf.gen_birthday);
         assert!(config.char_conf.gen_description);
         assert!(config.char_conf.gen_image);
         assert!(config.char_conf.gen_collection);
@@ -92,5 +96,7 @@ mod tests {
         assert_eq!(config.values_conf.levels_file, "./levels");
         assert_eq!(config.values_conf.images_folder, "./images/");
         assert_eq!(config.values_conf.description_files, "./descriptions");
+        assert_eq!(config.values_conf.birthday_min_year, 1920);
+        assert_eq!(config.values_conf.birthday_max_year, 2010);
     }
 }

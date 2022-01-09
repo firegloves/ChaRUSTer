@@ -1,3 +1,4 @@
+use chrono::{Date, Utc};
 use serde::{Serialize};
 
 pub enum CharacterPropTypes {
@@ -12,6 +13,7 @@ pub enum CharacterFeature {
     NAME(String),
     SURNAME(String),
     NICKNAME(String),
+    BIRTHDAY(String),
     DESCRIPTION(String),
     IMAGE(String),
     COLLECTION(String),
@@ -27,6 +29,7 @@ pub struct Charuster {
     name: String,
     surname: String,
     nickname: String,
+    birthday: String,
     description: String,
     hobbies: Vec<String>,
     image: String,
@@ -52,6 +55,9 @@ impl Charuster {
     }
     pub fn nickname(&self) -> &String {
         &self.nickname
+    }
+    pub fn birthday(&self) -> &String {
+        &self.birthday
     }
     pub fn description(&self) -> &String {
         &self.description
@@ -84,6 +90,7 @@ pub struct CharacterBuilder {
     name: String,
     surname: String,
     nickname: String,
+    birthday: String,
     description: String,
     hobbies: Vec<String>,
     image: String,
@@ -100,6 +107,7 @@ impl CharacterBuilder {
             name: "".to_string(),
             surname: "".to_string(),
             nickname: "".to_string(),
+            birthday: "".to_string(),
             description: "".to_string(),
             hobbies: vec![],
             image: "".to_string(),
@@ -123,6 +131,11 @@ impl CharacterBuilder {
 
     pub fn nickname(& mut self, nickname: String) -> &Self {
         self.nickname = nickname.to_string();
+        self
+    }
+
+    pub fn birthday(& mut self, birthday: String) -> &Self {
+        self.birthday = birthday;
         self
     }
 
@@ -173,6 +186,7 @@ impl CharacterBuilder {
             name: self.name,
             surname: self.surname,
             nickname: self.nickname,
+            birthday: self.birthday.to_string(),
             description: self.description,
             hobbies: self.hobbies,
             image: self.image,
@@ -219,6 +233,7 @@ impl Quirk for Stat {}
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
+    use chrono::{TimeZone, Utc};
     use crate::character::CharacterPropTypes;
     use super::*;
 
