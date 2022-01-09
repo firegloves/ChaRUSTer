@@ -1,5 +1,7 @@
 [execution_conf]
-    char_nums = 5
+    charusters_nums = 5
+    export_to_json = true
+    export_to_json_file = "output/charusters.json"
 
 [char_conf]
     gen_name = true

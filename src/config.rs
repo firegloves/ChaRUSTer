@@ -1,12 +1,7 @@
-use std::borrow::BorrowMut;
-use std::fs::{File, read_to_string};
-use std::io;
-use std::io::BufRead;
-use std::path::{Path, PathBuf};
+use std::fs::{read_to_string};
+use std::path::{PathBuf};
 
-use rand::prelude::*;
-use serde::{Deserialize, Serialize};
-use toml::Value;
+use serde::{Deserialize};
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -17,7 +12,9 @@ pub struct Config {
 
 #[derive(Deserialize)]
 pub struct ExecutionConf {
-    pub char_nums: u32
+    pub charusters_nums: u32,
+    pub export_to_json: bool,
+    pub export_to_json_file: String,
 }
 
 #[derive(Deserialize)]
@@ -54,24 +51,32 @@ pub struct ValuesConfig {
     pub birthdate_max_year: u16,
 }
 
-pub fn parse_config() -> Config {
+pub fn parse_local_config() -> Config {
     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     d.push("resources/config.toml");
     let config_file = d.into_os_string().into_string().unwrap();
-    toml::from_str(read_to_string(config_file).unwrap().as_str()).unwrap()
+    parse_config(&config_file)
+}
+
+pub fn parse_config(config_filename: &str) -> Config {
+    toml::from_str(read_to_string(config_filename).unwrap().as_str()).unwrap()
 }
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
 
     use super::*;
 
     #[test]
     fn should_read_conf_from_toml() {
-        let config = parse_config();
+        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        d.push("resources/test/test_config.toml");
+        let config_file = d.into_os_string().into_string().unwrap();
+        let config = parse_config(config_file.as_str());
 
-        assert_eq!(config.execution_conf.char_nums, 3);
+        assert_eq!(config.execution_conf.charusters_nums, 5);
+        assert_eq!(config.execution_conf.export_to_json, true);
+        assert_eq!(config.execution_conf.export_to_json_file, "output/charusters.json");
 
         assert!(config.char_conf.gen_name);
         assert!(config.char_conf.gen_surname);

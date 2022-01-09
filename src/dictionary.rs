@@ -1,12 +1,11 @@
 use std::{fs, io};
-use std::borrow::BorrowMut;
 use std::fs::File;
 use std::io::{BufRead, Read};
 use std::path::Path;
-use dyn_clone::DynClone;
 
+use dyn_clone::DynClone;
 use rand::prelude::*;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 
 const ACCEPTED_IMAGE_FORMATS: [&'static str; 3] = ["jpg", "jpeg", "png"];
 
@@ -182,7 +181,7 @@ mod tests {
     }
 
     fn get_not_existing_dictionary_filename() -> String {
-        let mut d = PathBuf::from("resources/test/not_existing");
+        let d = PathBuf::from("resources/test/not_existing");
         d.into_os_string().into_string().unwrap()
     }
 
@@ -236,7 +235,7 @@ mod tests {
         assert_eq!(dict.terms.len(), 1);
 
         let term2 = dict.choose().unwrap();
-        assert_eq!(term, term1);
+        assert_eq!(term, term2);
         assert_eq!(dict.terms.len(), 1);
     }
 
@@ -299,7 +298,7 @@ mod tests {
 
     #[test]
     fn should_choose_a_random_term_from_the_dictionary() {
-        let mut dict = SimpleDictionary::new(get_test_dictionary_filename().as_str());
+        let dict = SimpleDictionary::new(get_test_dictionary_filename().as_str());
 
         let term1 = dict.choose().unwrap();
         assert!(EXPECTED_TERMS.contains(&term1.as_str()));

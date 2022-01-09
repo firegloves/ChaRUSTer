@@ -1,5 +1,4 @@
-use chrono::{Date, Utc};
-use serde::{Serialize};
+use serde::Serialize;
 
 pub enum CharacterPropTypes {
     String,
@@ -245,9 +244,6 @@ impl Quirk for Stat {}
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-    use chrono::{TimeZone, Utc};
-    use crate::character::CharacterPropTypes;
     use super::*;
 
     #[test]

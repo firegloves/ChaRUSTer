@@ -1,5 +1,8 @@
 [execution_conf]
-    char_nums = 3
+    charusters_nums = 5
+    export_to_json = true
+    export_to_json_file = "output/charusters.json"
+
 
 [char_conf]
     gen_name = true
@@ -20,6 +23,7 @@
     names_file = "./names"
     surnames_file = "./surnames"
     nicknames_file = "./adjectives"
+    birthplaces_file = "resources/country_cities"
     hobbies_file = "./hobbies"
     professions_file = "./professions"
     props_file = "./properties"

@@ -1,18 +1,12 @@
-use std::borrow::BorrowMut;
-use std::fs::{File, OpenOptions};
-use std::io::{BufReader, BufWriter, Write, BufRead};
-use std::marker::PhantomData;
-use std::ops::Add;
-use chrono::{Date, Datelike, DateTime, Duration, NaiveTime, TimeZone, Utc};
-use rand::distributions::Uniform;
+use std::fs::OpenOptions;
+use std::io::{BufRead, BufReader, BufWriter, Write};
+
+use chrono::{Datelike, DateTime, Duration, NaiveTime, TimeZone, Utc};
 use rand::Rng;
-use rand::rngs::ThreadRng;
-use toml::value::Datetime;
 
 use crate::character;
-use crate::character::{CharacterBuilder, CharacterFeature, Charuster, Level, Property, Stat, Quirk};
-use crate::config::Config;
-use crate::dictionary;
+use crate::character::{CharacterBuilder, CharacterFeature, Charuster, Level, Property, Stat};
+use crate::config::{Config, parse_local_config};
 use crate::dictionary::{Dictionary, SimpleDictionary, TwoLevelsDictionary};
 
 type FnCharFeatPropCreator = Box<dyn Fn(String) -> Option<character::CharacterFeature>>;
@@ -20,31 +14,17 @@ type FnCharFeatVecPropCreator = Box<dyn Fn(Vec<String>) -> Option<character::Cha
 type FnCharFeatVecQuirkCreator<T> = Box<dyn Fn(Vec<T>) -> Option<character::CharacterFeature>>;
 type FnQuirkCreator<T> = Box<dyn Fn(&mut dyn Dictionary) -> T>;
 
-fn export_to_json(charusters: Vec<Charuster>, filename: &str) {
-    let json = serde_json::to_string(&charusters).unwrap();
+pub fn generate_charusters(conf: Option<Config>) -> Vec<Charuster> {
 
-    let write = OpenOptions::new().write(true).create(true).open(filename);
-    let mut reader = BufReader::new(json.as_bytes());
-    let mut writer = BufWriter::new(write.unwrap());
-
-    let mut length = 1;
-
-    while length > 0 {
-        let buffer = reader.fill_buf().unwrap();
-
-        writer.write(buffer);
-
-        length = buffer.len();
-        reader.consume(length);
-    }
-}
-
-fn generate_charusters(config: &Config) -> Vec<Charuster> {
+    let config = match conf {
+        None => parse_local_config(),
+        Some(c) => c
+    };
 
     let mut charusters = vec![];
-    let mut generators = create_generators(config);
-    let char_len = config.execution_conf.char_nums;
-    for i in (0..char_len).into_iter() {
+    let mut generators = create_generators(&config);
+    let char_len = config.execution_conf.charusters_nums;
+    for _ in (0..char_len).into_iter() {
         let mut builder = CharacterBuilder::new();
         let gen_len = generators.len();
         for i in (0..gen_len).into_iter() {
@@ -69,6 +49,11 @@ fn generate_charusters(config: &Config) -> Vec<Charuster> {
         let charuster = builder.build();
         charusters.push(charuster);
     }
+
+    if config.execution_conf.export_to_json {
+        export_to_json(&charusters, config.execution_conf.export_to_json_file.as_str());
+    }
+
     charusters
 }
 
@@ -78,71 +63,70 @@ fn create_generators(config: &Config) -> Vec<Box<dyn FeatureGenerator>> {
 
     if config.char_conf.gen_name && !config.values_conf.names_file.is_empty() {
         let dict = SimpleDictionary::new(config.values_conf.names_file.as_str());
-        let mut generator = ChooseGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::NAME(v.clone()))));
+        let generator = ChooseGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::NAME(v.clone()))));
         let boxxx = Box::new(generator);
         generators.push(boxxx);
     }
     if config.char_conf.gen_surname && !config.values_conf.surnames_file.is_empty() {
         let dict = SimpleDictionary::new(config.values_conf.surnames_file.as_str());
-        let mut generator = ChooseGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::SURNAME(v.clone()))));
-        let mut boxxx = Box::new(generator);
+        let generator = ChooseGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::SURNAME(v.clone()))));
+        let boxxx = Box::new(generator);
         generators.push(boxxx);
     }
     if config.char_conf.gen_nickname && !config.values_conf.nicknames_file.is_empty() {
         let dict = SimpleDictionary::new(config.values_conf.nicknames_file.as_str());
-        let mut generator = ChooseAndRemoveGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::NICKNAME(v.clone()))));
-        let mut boxxx = Box::new(generator);
+        let generator = ChooseAndRemoveGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::NICKNAME(v.clone()))));
+        let boxxx = Box::new(generator);
         generators.push(boxxx);
     }
     if config.char_conf.gen_birthdate {
         let min_year = config.values_conf.birthdate_min_year;
         let max_year = config.values_conf.birthdate_max_year;
-        println!("MIN YEAR: {} - MAX YEAR {}", min_year, max_year);
-        let mut generator = DateGenerator::new(min_year, max_year,
+        let generator = DateGenerator::new(min_year, max_year,
                                                Box::new(|v: String| Some(CharacterFeature::BIRTHDATE(v.clone()))));
-        let mut boxxx = Box::new(generator);
+        let boxxx = Box::new(generator);
         generators.push(boxxx);
     }
     if config.char_conf.gen_birthdate {
         let dict = SimpleDictionary::new(config.values_conf.birthplaces_file.as_str());
-        let mut generator = ChooseAndRemoveGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::BIRTHPLACE(v.clone()))));
-        let mut boxxx = Box::new(generator);
+        let generator = ChooseAndRemoveGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::BIRTHPLACE(v.clone()))));
+        let boxxx = Box::new(generator);
         generators.push(boxxx);
     }
     if config.char_conf.gen_description && !config.values_conf.description_files.is_empty() {
         let dict = SimpleDictionary::new(config.values_conf.description_files.as_str());
-        let mut generator = ChooseAndRemoveGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::DESCRIPTION(v.clone()))));
-        let mut boxxx = Box::new(generator);
+        let generator = ChooseAndRemoveGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::DESCRIPTION(v.clone()))));
+        let boxxx = Box::new(generator);
         generators.push(boxxx);
     }
     if config.char_conf.gen_image && !config.values_conf.images_folder.is_empty() {
         let dict = SimpleDictionary::new_from_folder(config.values_conf.images_folder.as_str());
-        let mut generator = ChooseAndRemoveGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::IMAGE(v.clone()))));
-        let mut boxxx = Box::new(generator);
+        let generator = ChooseAndRemoveGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::IMAGE(v.clone()))));
+        let boxxx = Box::new(generator);
         generators.push(boxxx);
     }
     if config.char_conf.gen_collection {
         let dict = SimpleDictionary::new_with_single_term(String::from("collection"), config.values_conf.collection_name.clone());
-        let mut generator = ChooseGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::COLLECTION(v.clone()))));
-        let mut boxxx = Box::new(generator);
+        let generator = ChooseGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::COLLECTION(v.clone()))));
+        let boxxx = Box::new(generator);
         generators.push(boxxx);
     }
     if config.char_conf.gen_profession && !config.values_conf.professions_file.is_empty() {
         let dict = SimpleDictionary::new(config.values_conf.professions_file.as_str());
-        let mut generator = ChooseGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::PROFESSION(v.clone()))));
-        let mut boxxx = Box::new(generator);
+        let generator = ChooseGenerator::new(dict, Box::new(|v: String| Some(CharacterFeature::PROFESSION(v.clone()))));
+        let boxxx = Box::new(generator);
         generators.push(boxxx);
     }
     // TODO add num of desired item in vecs
     if config.char_conf.gen_hobbies && !config.values_conf.hobbies_file.is_empty() {
         let dict = SimpleDictionary::new(config.values_conf.hobbies_file.as_str());
-        let mut generator = ChooseVecGenerator::new(dict, Box::new(|v: Vec<String>| Some(CharacterFeature::HOBBIES(v))), 3);
-        let mut boxxx = Box::new(generator);
+        let generator = ChooseVecGenerator::new(dict, Box::new(|v: Vec<String>| Some(CharacterFeature::HOBBIES(v))), 3);
+        let boxxx = Box::new(generator);
         generators.push(boxxx);
     }
     if config.char_conf.gen_props && !config.values_conf.props_file.is_empty() {
         let dict = TwoLevelsDictionary::new(config.values_conf.props_file.as_str());
-        let mut generator = ChooseVecQuirkGenerator::new(Box::new(dict), Box::new(|v: Vec<Property>| Some(CharacterFeature::PROPS(v))), 3,
+        let generator = ChooseVecQuirkGenerator::new(Box::new(dict), Box::new(|v: Vec<Property>| Some(CharacterFeature::PROPS(v))), 3,
                                                      Box::new(|dict: &mut dyn Dictionary| {
                                                          let term = dict.choose_and_remove().unwrap();
                                                          let taxonomy : Vec<&str> = term.split("+").collect();
@@ -151,12 +135,12 @@ fn create_generators(config: &Config) -> Vec<Box<dyn FeatureGenerator>> {
                                                              name: String::from(taxonomy.get(1).unwrap().to_owned())
                                                          }
                                                      }));
-        let mut boxxx = Box::new(generator);
+        let boxxx = Box::new(generator);
         generators.push(boxxx);
     }
     if config.char_conf.gen_levels && !config.values_conf.levels_file.is_empty() {
         let dict = SimpleDictionary::new(config.values_conf.levels_file.as_str());
-        let mut generator = ChooseVecQuirkGenerator::new(Box::new(dict), Box::new(|v: Vec<Level>| Some(CharacterFeature::LEVELS(v))), 3,
+        let generator = ChooseVecQuirkGenerator::new(Box::new(dict), Box::new(|v: Vec<Level>| Some(CharacterFeature::LEVELS(v))), 3,
                                                      Box::new(|dict: &mut dyn Dictionary| {
                                                          character::Level {
                                                              name: dict.choose_and_remove().unwrap(),
@@ -164,12 +148,12 @@ fn create_generators(config: &Config) -> Vec<Box<dyn FeatureGenerator>> {
                                                              max_value: 100
                                                          }
                                                      }));
-        let mut boxxx = Box::new(generator);
+        let boxxx = Box::new(generator);
         generators.push(boxxx);
     }
     if config.char_conf.gen_stats && !config.values_conf.stats_file.is_empty() {
         let dict = SimpleDictionary::new(config.values_conf.stats_file.as_str());
-        let mut generator = ChooseVecQuirkGenerator::new(Box::new(dict), Box::new(|v: Vec<Stat>| Some(CharacterFeature::STATS(v))), 3,
+        let generator = ChooseVecQuirkGenerator::new(Box::new(dict), Box::new(|v: Vec<Stat>| Some(CharacterFeature::STATS(v))), 3,
                                                      Box::new(|dict: &mut dyn Dictionary| {
                                                          character::Stat {
                                                              name: dict.choose_and_remove().unwrap(),
@@ -177,7 +161,7 @@ fn create_generators(config: &Config) -> Vec<Box<dyn FeatureGenerator>> {
                                                              max_value: 100
                                                          }
                                                      }));
-        let mut boxxx = Box::new(generator);
+        let boxxx = Box::new(generator);
         generators.push(boxxx);
     }
 
@@ -309,37 +293,40 @@ where T: character::Quirk {
     }
 }
 
+fn export_to_json(charusters: &Vec<Charuster>, filename: &str) {
+    let json = serde_json::to_string(&charusters).unwrap();
+
+    let write = OpenOptions::new().write(true).create(true).truncate(true).open(filename);
+    let mut reader = BufReader::new(json.as_bytes());
+    let mut writer = BufWriter::new(write.unwrap());
+
+    let mut length = 1;
+
+    while length > 0 {
+        let buffer = reader.fill_buf().unwrap();
+
+        writer.write(buffer).expect("JSON export failed");
+
+        length = buffer.len();
+        reader.consume(length);
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
-    use std::cmp::min;
-    use std::path::PathBuf;
-    use chrono::NaiveDateTime;
-
-    use crate::character::CharacterFeature::NAME;
-    use crate::character::CharacterPropTypes;
-    use crate::config::parse_config;
-
     use super::*;
-
-    fn get_test_dictionary_filename() -> String {
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("resources/test/test_dictionary");
-        d.into_os_string().into_string().unwrap()
-    }
 
     #[test]
     fn generate_churusters() {
-        let config = parse_config();
-        let charusters = generate_charusters(&config);
-        //export_to_json(charusters, "/Users/firegloves/Desktop/churusters.json")
+        generate_charusters(None);
     }
 
     #[test]
     fn should_return_random_date_in_the_expected_interval() {
         let min_year = 1900;
         let max_year = 1950;
-        for i in (0..1000).into_iter() {
+        for _ in (0..1000).into_iter() {
             let gen_time = get_random_date(min_year, max_year);
             assert!(gen_time.year() >= min_year as i32 && gen_time.year() <= max_year as i32);
         }
