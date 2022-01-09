@@ -3,18 +3,20 @@ use std::borrow::BorrowMut;
 use std::fs::File;
 use std::io::{BufRead, Read};
 use std::path::Path;
+use dyn_clone::DynClone;
 
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
 const ACCEPTED_IMAGE_FORMATS: [&'static str; 3] = ["jpg", "jpeg", "png"];
 
-pub trait Dictionary {
+pub trait Dictionary: DynClone {
     fn choose_and_remove(&mut self) -> Option<String>;
     fn choose(&self) -> Option<String>;
 }
 
 // SimpleDictionary
+#[derive(Clone)]
 pub struct SimpleDictionary {
     name: String,
     terms: Vec<String>,
@@ -73,12 +75,13 @@ impl Dictionary for SimpleDictionary {
 }
 
 // TwoLevelsDictionary
+#[derive(Clone)]
 pub struct TwoLevelsDictionary {
     name: String,
     taxonomies: Vec<Taxonomy>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 struct Taxonomy {
     kind: String,
     terms: Vec<String>

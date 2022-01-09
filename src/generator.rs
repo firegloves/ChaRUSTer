@@ -14,7 +14,7 @@ use crate::dictionary::{Dictionary, SimpleDictionary, TwoLevelsDictionary};
 type FnCharFeatPropCreator = Box<dyn Fn(String) -> Option<character::CharacterFeature>>;
 type FnCharFeatVecPropCreator = Box<dyn Fn(Vec<String>) -> Option<character::CharacterFeature>>;
 type FnCharFeatVecQuirkCreator<T> = Box<dyn Fn(Vec<T>) -> Option<character::CharacterFeature>>;
-type FnQuirkCreator<T> = Box<dyn Fn(&dyn Dictionary) -> T>;
+type FnQuirkCreator<T> = Box<dyn Fn(&mut dyn Dictionary) -> T>;
 
 fn export_to_json(charusters: Vec<Charuster>, filename: &str) {
     let json = serde_json::to_string(&charusters).unwrap();
@@ -123,8 +123,8 @@ fn create_generators(config: &Config) -> Vec<Box<dyn FeatureGenerator>> {
     if config.char_conf.gen_props && !config.values_conf.props_file.is_empty() {
         let dict = TwoLevelsDictionary::new(config.values_conf.props_file.as_str());
         let mut generator = ChooseVecQuirkGenerator::new(Box::new(dict), Box::new(|v: Vec<Property>| Some(CharacterFeature::PROPS(v))), 3,
-                                                     Box::new(|dict: &dyn Dictionary| {
-                                                         let term = dict.choose().unwrap();
+                                                     Box::new(|dict: &mut dyn Dictionary| {
+                                                         let term = dict.choose_and_remove().unwrap();
                                                          let taxonomy : Vec<&str> = term.split("+").collect();
                                                          character::Property {
                                                              prop_type: String::from(taxonomy.get(0).unwrap().to_owned()),
@@ -137,9 +137,9 @@ fn create_generators(config: &Config) -> Vec<Box<dyn FeatureGenerator>> {
     if config.char_conf.gen_levels && !config.values_conf.levels_file.is_empty() {
         let dict = SimpleDictionary::new(config.values_conf.levels_file.as_str());
         let mut generator = ChooseVecQuirkGenerator::new(Box::new(dict), Box::new(|v: Vec<Level>| Some(CharacterFeature::LEVELS(v))), 3,
-                                                     Box::new(|dict: &dyn Dictionary| {
+                                                     Box::new(|dict: &mut dyn Dictionary| {
                                                          character::Level {
-                                                             name: dict.choose().unwrap(),
+                                                             name: dict.choose_and_remove().unwrap(),
                                                              value: rand::thread_rng().gen_range(1..=100),
                                                              max_value: 100
                                                          }
@@ -150,9 +150,9 @@ fn create_generators(config: &Config) -> Vec<Box<dyn FeatureGenerator>> {
     if config.char_conf.gen_stats && !config.values_conf.stats_file.is_empty() {
         let dict = SimpleDictionary::new(config.values_conf.stats_file.as_str());
         let mut generator = ChooseVecQuirkGenerator::new(Box::new(dict), Box::new(|v: Vec<Stat>| Some(CharacterFeature::STATS(v))), 3,
-                                                     Box::new(|dict: &dyn Dictionary| {
+                                                     Box::new(|dict: &mut dyn Dictionary| {
                                                          character::Stat {
-                                                             name: dict.choose().unwrap(),
+                                                             name: dict.choose_and_remove().unwrap(),
                                                              value: rand::thread_rng().gen_range(1..=100),
                                                              max_value: 100
                                                          }
@@ -249,8 +249,9 @@ impl<T> FeatureGenerator for ChooseVecQuirkGenerator<T>
 where T: character::Quirk {
     fn generate(&mut self) -> Option<character::CharacterFeature> {
         let mut feat_vec = vec![];
+        let mut cloned_dict = dyn_clone::clone_box(&*self.dict);
         for _ in (0..self.vec_size).into_iter() {
-            let quirk = (self.fn_quirk_creator)(&*self.dict);
+            let quirk = (self.fn_quirk_creator)(cloned_dict.as_mut());
             feat_vec.push(quirk);
         }
         (self.fn_char_feat_vec_creator)(feat_vec)
