@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 pub enum CharacterPropTypes {
     String,
@@ -24,7 +24,7 @@ pub enum CharacterFeature {
     STATS(Vec<Stat>),
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Charuster {
     name: String,
     surname: String,
@@ -214,7 +214,7 @@ impl CharacterBuilder {
 pub trait Quirk {}
 
 // Property
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Property {
     // TODO creare new fn e togliere pub
     pub prop_type: String,
@@ -223,7 +223,7 @@ pub struct Property {
 impl Quirk for Property {}
 
 // Level
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Level {
     // TODO creare new fn e togliere pub
     pub name: String,
@@ -233,7 +233,7 @@ pub struct Level {
 impl Quirk for Level {}
 
 // Stat
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Stat {
     pub name: String,
     pub value: i32,

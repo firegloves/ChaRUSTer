@@ -44,7 +44,7 @@ impl SimpleDictionary {
             .map(|dir_entry| dir_entry.unwrap().path())
             .filter(|path| path.extension().is_some() &&
                 ACCEPTED_IMAGE_FORMATS.contains(&(path.extension().unwrap().to_str().unwrap())))
-            .map(|path| path.file_name().unwrap().to_str().unwrap().to_owned())
+            .map(|path| path.to_str().unwrap().to_owned())
             .collect();
 
         SimpleDictionary { name: name.unwrap().to_owned(), terms }

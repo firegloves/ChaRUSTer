@@ -19,7 +19,7 @@
     gen_stats = true
 
 [values_conf]
-    collection_name = "Junkie Zombies"
+    collection_name = "Z8mbit"
     names_file = "resources/names"
     surnames_file = "resources/surnames"
     nicknames_file = "resources/adjectives"
